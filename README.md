@@ -13,7 +13,6 @@ Aplicación Móvil para el perfil de repartidor en donde podra realizar recibir 
 
 ## Estructura
 
-```
 index.html            → shell de la app + las 19 pantallas (<section class="screen">)
 assets/css/styles.css → sistema de diseño (colores, tipografía, componentes)
 assets/js/script.js   → navegación entre pantallas, selector de pantallas, toggles
