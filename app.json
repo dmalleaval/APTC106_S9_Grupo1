@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "FoodPlease Repartidor",
+    "slug": "foodplease-repartidor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "foodplease",
+    "assetBundlePatterns": ["**/*"],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/hero-bienvenida.png"
+    },
+    "experiments": {
+      "baseUrl": "/APTC106_S9_Grupo1"
+    }
+  }
+}

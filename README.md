@@ -8,23 +8,58 @@ Repositorio correspondiente a sección APTC106 Grupo 3 Aplicativo móvil FoodPle
 - Gabriel Vera
 - Diego Mallea
 
-## Descripción del proyecto
+# FoodPlease · Repartidor — maqueta en React Native + Expo
 
 Aplicación Móvil para el perfil de repartidor en donde podra realizar recibir pedidos, navegar via GPS, actualziar estados de pedidos y confirmación de entregas. Adicional podra visualizar los pedidos realizados, en curso y los montos asociados.
 
-## Estructura
+Maqueta navegable construida con **React Native + Expo** (JavaScript), usando **React Navigation** para la navegación entre pantallas.
 
-index.html → shell de la app + las 19 pantallas (<section class="screen">)
-assets/css/styles.css → sistema de diseño (colores, tipografía, componentes)
-assets/js/script.js → navegación entre pantallas, selector de pantallas, toggles
-verify.py → script opcional (Playwright) para tomar capturas de cada pantalla
+## Requisitos
 
-Cada pantalla es un `<section class="screen" data-screen="nombre-de-pantalla">`. La navegación entre ellas se hace con atributos `data-goto="nombre-de-pantalla"` en cualquier botón o link — `script.js` intercepta el click y cambia la pantalla activa. También hay un selector ("Ir a pantalla") en la barra superior del prototipo para saltar directo a cualquiera de las 19, útil para revisar estados que no forman parte del flujo principal (skeleton loading, snackbar, etc).
+- Node.js 18 o superior
+- npm (o yarn/pnpm)
+- La app [Expo Go](https://expo.dev/go) en tu celular, si quieres probarla en un dispositivo real (opcional — también corre en el navegador)
 
-## Pantallas incluidas
+## Instalación
 
-Bienvenida, Login, Recuperar contraseña (correo / código / nueva contraseña), Contraseña actualizada, Pedidos disponibles, Pedidos fuera de línea, Home con snackbar activo, Home con skeleton loading, Detalle del pedido, Navegación GPS, Actualizar estado, Confirmar entrega, Entrega completada, Perfil, Historial de pedidos, Pedidos en curso, Mapa de pedidos.
+```bash
+npm install
+```
 
-## Cómo verlo localmente
+```bash
+npx expo install --check
+```
 
-Solo abre `index.html` en el navegador (no necesita servidor ni instalación).
+## Correrlo
+
+```bash
+npx expo start        # abre el menú de Expo (QR para celular, o presiona 'w' para abrir en el navegador)
+npx expo start --web  # abre directo en el navegador
+```
+
+## Estructura del proyecto
+
+```
+App.js                        → entry point: NavigationContainer + linking
+src/
+  theme/                       → colores, tipografía (tokens del diseño Figma)
+  components/                  → Icon, AppButton, Field, Card, TopAppBar,
+                                  BottomNavBar, PhoneChrome (barra de estado
+                                  y barra de gestos "falsas" que replican el
+                                  diseño — ver nota abajo)
+  navigation/
+    RootNavigator.js            → Stack principal (login, recuperar clave,
+                                   flujo de un pedido, etc.)
+    MainTabs.js                 → Bottom Tabs (Pedidos, Mapa, Historial, Perfil)
+    linking.js                  → mapea cada pantalla a una URL, para que
+                                   funcione bien en la versión web
+  screens/                      → una carpeta/archivo por pantalla
+assets/images/                  → 3 imágenes de marcador de posición
+                                   (ver nota abajo)
+```
+
+### Pantallas incluidas (16 rutas de navegación)
+
+Bienvenida, Login, Recuperar contraseña (correo → código → nueva contraseña), Contraseña actualizada, **Main** (Tabs: Pedidos disponibles, Mapa de pedidos, Historial de pedidos, Perfil), Detalle del pedido, Navegación GPS, Actualizar estado, Confirmar entrega, Entrega completada, Pedidos en curso.
+
+Las 3 vistas "secundarias" del diseño original (fuera de línea, snackbar de activación, cargando/skeleton) **no son rutas separadas** — se manejan como estado local dentro de la pantalla Home (`src/screens/home/PedidosDisponiblesScreen.js`), tal como funcionaría una pantalla real. Esa pantalla tiene una fila "Modo demo" al final para poder mostrar el estado de carga fácilmente; bórrala cuando ya no la necesites.
