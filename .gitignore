@@ -1,4 +1,7 @@
-screenshots/
-__pycache__/
-*.pyc
+node_modules/
+.expo/
+dist/
+web-build/
+npm-debug.*
+*.log
 .DS_Store
