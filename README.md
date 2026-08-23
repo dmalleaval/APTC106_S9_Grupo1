@@ -63,3 +63,9 @@ assets/images/                  → 3 imágenes de marcador de posición
 Bienvenida, Login, Recuperar contraseña (correo → código → nueva contraseña), Contraseña actualizada, **Main** (Tabs: Pedidos disponibles, Mapa de pedidos, Historial de pedidos, Perfil), Detalle del pedido, Navegación GPS, Actualizar estado, Confirmar entrega, Entrega completada, Pedidos en curso.
 
 Las 3 vistas "secundarias" del diseño original (fuera de línea, snackbar de activación, cargando/skeleton) **no son rutas separadas** — se manejan como estado local dentro de la pantalla Home (`src/screens/home/PedidosDisponiblesScreen.js`), tal como funcionaría una pantalla real. Esa pantalla tiene una fila "Modo demo" al final para poder mostrar el estado de carga fácilmente; bórrala cuando ya no la necesites.
+
+### GitHub Pages
+
+https://dmalleaval.github.io/APTC106_S9_Grupo1/
+
+Esta generado en base a la rama gh-pages, que contiene los codigos estaticos de nuestra aplicación principal que se encuentra en la rama main.
