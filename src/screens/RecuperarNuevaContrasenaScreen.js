@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import TopAppBar from "../components/TopAppBar";
 import AppButton from "../components/AppButton";
 import Field from "../components/Field";
@@ -13,10 +13,9 @@ export default function RecuperarNuevaContrasenaScreen({ navigation }) {
   const [pw2, setPw2] = useState("");
 
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar light />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <TopAppBar title="Nueva contraseña" onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.iconCircle}>
           <Icon name="key" size={36} color={colors.dark} />
         </View>
@@ -34,13 +33,13 @@ export default function RecuperarNuevaContrasenaScreen({ navigation }) {
           />
         </View>
       </ScrollView>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.white },
+  scrollFlex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingVertical: 32, gap: 32 },
   iconCircle: {
     alignSelf: "center",

@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { enableScreens } from "react-native-screens";
 import RootNavigator from "./src/navigation/RootNavigator";
 import linking from "./src/navigation/linking";
+import { OrdersProvider } from "./src/state/OrdersContext";
 
 // react-native-screens todavía no posiciona bien sus pantallas nativas en la
 // web (los stacks se apilan verticalmente en vez de superponerse a pantalla
@@ -22,13 +23,12 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1, width: "100%", height: "100%" }}>
       <SafeAreaProvider>
-        {/* La app dibuja su propia barra de estado "falsa" por pantalla
-            (ver src/components/PhoneChrome.js) para calzar con el diseño de
-            Figma, así que ocultamos la barra de estado real del sistema. */}
-        <StatusBar hidden />
-        <NavigationContainer linking={linking}>
-          <RootNavigator />
-        </NavigationContainer>
+        <StatusBar style="auto" />
+        <OrdersProvider>
+          <NavigationContainer linking={linking}>
+            <RootNavigator />
+          </NavigationContainer>
+        </OrdersProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

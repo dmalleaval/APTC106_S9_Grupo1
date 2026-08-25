@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, ImageBackground, Pressable, StyleSheet } from "react-native";
-import { PhoneStatusBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
@@ -18,8 +18,7 @@ const PINS = [
 
 export default function MapaDePedidosScreen({ navigation }) {
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Icon name="arrow-left" size={22} color={colors.white} />
@@ -70,7 +69,7 @@ export default function MapaDePedidosScreen({ navigation }) {
         <AppButton title="Tomar pedido" size="sm" onPress={() => navigation.navigate("DetalleDelPedido")} />
         <Text style={styles.swipeHint}>Desliza para ver más pedidos cercanos</Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

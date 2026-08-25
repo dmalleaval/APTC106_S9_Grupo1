@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "../components/AppButton";
 import Card from "../components/Card";
 import Icon from "../components/Icon";
@@ -9,8 +9,7 @@ import { fontBody } from "../theme/typography";
 
 export default function ContrasenaActualizadaScreen({ navigation }) {
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar light />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.content}>
         <View style={styles.successCircle}>
           <Icon name="shield-check" size={48} color={colors.white} />
@@ -35,8 +34,7 @@ export default function ContrasenaActualizadaScreen({ navigation }) {
       <View style={styles.actions}>
         <AppButton title="Iniciar sesión" onPress={() => navigation.navigate("Login")} />
       </View>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 

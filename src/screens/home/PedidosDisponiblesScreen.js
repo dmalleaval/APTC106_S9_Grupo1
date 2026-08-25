@@ -1,30 +1,29 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
-import { PhoneStatusBar } from "../../components/PhoneChrome";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "../../components/AppButton";
 import Card from "../../components/Card";
 import Icon from "../../components/Icon";
 import { colors, radii } from "../../theme/colors";
 import { fontBody } from "../../theme/typography";
-
-const PEDIDOS = [
-  { id: "#1042", nombre: "Sushi Corner", dir: "Av. Providencia 2140", precio: "$2.900", km: "1,2 km", min: "~14 min" },
-  { id: "#1043", nombre: "Pizzería Napoli", dir: "Los Leones 1820", precio: "$3.200", km: "2,4 km", min: "~18 min" },
-  { id: "#1044", nombre: "Café Bistrô", dir: null, precio: "$2.700", km: null, min: null },
-];
+import { useOrders } from "../../state/OrdersContext";
 
 /**
  * Pantalla Home. Los estados "fuera de línea", "snackbar de activación" y
  * "cargando" del diseño original se manejan acá como estado local — tal
  * como se comportaría una pantalla Home real — en vez de ser rutas de
- * navegación separadas. La fila "Modo demo" al final del header es solo
- * para poder mostrar cada estado fácilmente al navegar la maqueta; bórrala
- * si no la necesitas.
+ * navegación separadas. Al montar la pantalla se muestra el skeleton de
+ * carga por un instante, simulando una llamada real a la API.
  */
 export default function PedidosDisponiblesScreen({ navigation }) {
   const [online, setOnline] = useState(true);
   const [showSnackbar, setShowSnackbar] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 900);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleToggleOnline = () => {
     if (online) {
@@ -37,8 +36,7 @@ export default function PedidosDisponiblesScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
 
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -47,13 +45,15 @@ export default function PedidosDisponiblesScreen({ navigation }) {
           </View>
           <Text style={styles.headerTitle}>Hola, Javier</Text>
         </View>
-        <Pressable
-          onPress={handleToggleOnline}
-          style={[styles.toggle, !online && styles.toggleOff]}
-        >
+        <View style={styles.toggleRow}>
           <Text style={styles.toggleText}>{online ? "En línea" : "Fuera de línea"}</Text>
-          <View style={styles.toggleKnob} />
-        </Pressable>
+          <Switch
+            value={online}
+            onValueChange={handleToggleOnline}
+            trackColor={{ false: colors.red, true: colors.teal }}
+            thumbColor={colors.white}
+          />
+        </View>
       </View>
       <View style={styles.subHeader}>
         <Text style={styles.subHeaderText}>Zona Providencia</Text>
@@ -75,20 +75,15 @@ export default function PedidosDisponiblesScreen({ navigation }) {
           </Pressable>
         </View>
       ) : null}
-
-      <View style={styles.devRow}>
-        <Text style={styles.devLabel}>Modo demo:</Text>
-        <Pressable onPress={() => setLoading((l) => !l)}>
-          <Text style={styles.devLink}>{loading ? "Ocultar cargando" : "Ver cargando"}</Text>
-        </Pressable>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 function OnlineBody({ navigation }) {
+  const { available, porRetirar } = useOrders();
+
   return (
-    <ScrollView contentContainerStyle={styles.body}>
+    <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
       <Card dark style={styles.earningsCard}>
         <Text style={styles.eyebrowLight}>GANANCIAS DEL DÍA</Text>
         <Text style={styles.earningsAmount}>$18.400</Text>
@@ -108,7 +103,7 @@ function OnlineBody({ navigation }) {
           <View style={styles.progressBox}>
             <View style={styles.progressBoxTop}>
               <View style={[styles.dot, { backgroundColor: colors.red }]} />
-              <Text style={styles.progressNumber}>2</Text>
+              <Text style={styles.progressNumber}>{porRetirar.length}</Text>
             </View>
             <Text style={[styles.progressLabel, { color: colors.red }]}>por retirar</Text>
           </View>
@@ -122,7 +117,11 @@ function OnlineBody({ navigation }) {
 
       <Text style={styles.sectionTitle}>Pedidos disponibles</Text>
 
-      {PEDIDOS.map((p) => (
+      {available.length === 0 ? (
+        <Text style={styles.emptyText}>No hay pedidos disponibles por ahora.</Text>
+      ) : null}
+
+      {available.map((p) => (
         <Card key={p.id} style={[styles.orderCard, p.km ? null : { opacity: 0.6 }]}>
           <View style={styles.orderTop}>
             <Text style={styles.orderId}>{p.id}</Text>
@@ -142,7 +141,7 @@ function OnlineBody({ navigation }) {
             title="Ver detalle"
             variant="pill-outline"
             size="md-sm"
-            onPress={() => navigation.navigate("DetalleDelPedido")}
+            onPress={() => navigation.navigate("DetalleDelPedido", p)}
           />
         </Card>
       ))}
@@ -152,7 +151,7 @@ function OnlineBody({ navigation }) {
 
 function OfflineBody({ onActivate }) {
   return (
-    <ScrollView contentContainerStyle={styles.body}>
+    <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
       <Card style={styles.offlineEarnings}>
         <Text style={styles.eyebrowLight}>GANANCIAS DEL DÍA (INACTIVO)</Text>
         <Text style={styles.earningsAmount}>$18.400</Text>
@@ -180,7 +179,7 @@ function OfflineBody({ onActivate }) {
 function SkeletonBody() {
   const bar = (w, h = 14) => <View style={[styles.skelBar, { width: w, height: h }]} />;
   return (
-    <ScrollView contentContainerStyle={styles.body}>
+    <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
       <View style={[styles.skelBar, { width: "100%", height: 100, borderRadius: radii.lg }]} />
       {bar(160, 16)}
       {[1, 2, 3].map((i) => (
@@ -200,6 +199,7 @@ function SkeletonBody() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   header: {
     backgroundColor: colors.dark,
     minHeight: 56,
@@ -220,19 +220,8 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontFamily: fontBody, fontWeight: "600", fontSize: 12, color: colors.red },
   headerTitle: { fontFamily: fontBody, fontWeight: "600", fontSize: 20, color: colors.white },
-  toggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.teal,
-    paddingLeft: 12,
-    paddingRight: 4,
-  },
-  toggleOff: { backgroundColor: colors.red },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   toggleText: { fontFamily: fontBody, fontWeight: "500", fontSize: 13, color: colors.white },
-  toggleKnob: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.white },
   subHeader: { backgroundColor: colors.dark, paddingHorizontal: 16, paddingBottom: 8 },
   subHeaderText: { fontFamily: fontBody, fontSize: 14, color: "rgba(190,196,210,0.8)" },
   body: { padding: 16, gap: 16 },
@@ -273,6 +262,7 @@ const styles = StyleSheet.create({
   progressNumber: { fontFamily: fontBody, fontWeight: "700", fontSize: 28, color: colors.dark },
   progressLabel: { fontFamily: fontBody, fontWeight: "600", fontSize: 13 },
   sectionTitle: { fontFamily: fontBody, fontWeight: "600", fontSize: 16, color: colors.dark },
+  emptyText: { fontFamily: fontBody, fontSize: 14, color: colors.muted },
   orderCard: { gap: 12 },
   orderTop: { flexDirection: "row", justifyContent: "space-between" },
   orderId: { fontFamily: fontBody, fontWeight: "700", fontSize: 12, color: colors.dark },
@@ -316,13 +306,4 @@ const styles = StyleSheet.create({
   },
   snackbarText: { flex: 1, fontFamily: fontBody, fontSize: 14, color: colors.white },
   snackbarAction: { fontFamily: fontBody, fontWeight: "600", fontSize: 14, color: colors.red },
-  devRow: {
-    flexDirection: "row",
-    gap: 6,
-    justifyContent: "center",
-    paddingVertical: 6,
-    backgroundColor: colors.bg,
-  },
-  devLabel: { fontFamily: fontBody, fontSize: 11, color: colors.muted },
-  devLink: { fontFamily: fontBody, fontSize: 11, color: colors.red, fontWeight: "600" },
 });

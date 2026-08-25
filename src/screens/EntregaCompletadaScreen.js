@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
@@ -9,8 +9,7 @@ import { fontBody } from "../theme/typography";
 
 export default function EntregaCompletadaScreen({ navigation }) {
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar light />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.content}>
         <View style={styles.successCircle}>
           <Icon name="check" size={48} color={colors.white} />
@@ -34,8 +33,7 @@ export default function EntregaCompletadaScreen({ navigation }) {
       <View style={styles.actions}>
         <AppButton title="Buscar nuevo pedido" onPress={() => navigation.navigate("Main")} />
       </View>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 

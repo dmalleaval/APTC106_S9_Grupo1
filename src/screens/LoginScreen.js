@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AppButton from "../components/AppButton";
 import Field from "../components/Field";
 import Icon from "../components/Icon";
@@ -12,9 +12,8 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("12345678");
 
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.brandBlock}>
           <View style={styles.logoRow}>
             <Icon name="scooter" size={36} color={colors.red} />
@@ -39,13 +38,13 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.footer}>
         <Text style={styles.footerText}>v1.0 · APK distribución interna</Text>
       </View>
-      <GestureBar tone="white" />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   scroll: { flexGrow: 1 },
   brandBlock: {
     alignItems: "center",

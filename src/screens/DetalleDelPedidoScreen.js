@@ -1,16 +1,31 @@
 import React from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { useOrders } from "../state/OrdersContext";
 
-export default function DetalleDelPedidoScreen({ navigation }) {
+export default function DetalleDelPedidoScreen({ navigation, route }) {
+  const { acceptOrder } = useOrders();
+  const {
+    id = "#1042",
+    nombre = "Sushi Corner",
+    dir = "Av. Providencia 2140",
+    precio = "$2.900",
+    km = "3,1 km",
+    min,
+  } = route.params || {};
+
+  const handleAccept = () => {
+    acceptOrder({ id, nombre, dir, precio, km, min });
+    navigation.navigate("Main");
+  };
+
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <AppButton
           title=""
@@ -19,17 +34,17 @@ export default function DetalleDelPedidoScreen({ navigation }) {
           style={styles.backBtn}
           icon={<Icon name="arrow-left" size={22} color={colors.white} />}
         />
-        <Text style={styles.headerTitle}>Pedido #1042</Text>
+        <Text style={styles.headerTitle}>Pedido {id}</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Card outline style={styles.row}>
           <View style={[styles.iconWrap, { backgroundColor: colors.redSoft }]}>
             <Icon name="store" size={20} color={colors.red} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: colors.red }]}>RETIRO EN LOCAL</Text>
-            <Text style={styles.rowTitle}>Sushi Corner</Text>
-            <Text style={styles.rowSubtitle}>Av. Providencia 2140, local 3</Text>
+            <Text style={styles.rowTitle}>{nombre}</Text>
+            <Text style={styles.rowSubtitle}>{dir || "Dirección por confirmar"}</Text>
           </View>
         </Card>
         <Card outline style={styles.row}>
@@ -45,11 +60,11 @@ export default function DetalleDelPedidoScreen({ navigation }) {
         <Card dark style={styles.summaryRow}>
           <View>
             <Text style={styles.eyebrowLight}>DISTANCIA TOTAL</Text>
-            <Text style={styles.summaryValue}>3,1 km</Text>
+            <Text style={styles.summaryValue}>{km || "—"}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.eyebrowLight}>PAGO DEL REPARTO</Text>
-            <Text style={styles.summaryValue}>$2.900</Text>
+            <Text style={styles.summaryValue}>{precio}</Text>
           </View>
         </Card>
       </ScrollView>
@@ -60,19 +75,15 @@ export default function DetalleDelPedidoScreen({ navigation }) {
           style={{ flex: 1 }}
           onPress={() => navigation.navigate("Main")}
         />
-        <AppButton
-          title="Aceptar pedido"
-          style={{ flex: 1 }}
-          onPress={() => navigation.navigate("NavegacionGps")}
-        />
+        <AppButton title="Aceptar pedido" style={{ flex: 1 }} onPress={handleAccept} />
       </View>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   header: {
     backgroundColor: colors.dark,
     minHeight: 56,

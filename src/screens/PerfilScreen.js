@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
@@ -15,12 +15,11 @@ const ROWS = [
 
 export default function PerfilScreen() {
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mi perfil</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>JV</Text>
@@ -53,12 +52,13 @@ export default function PerfilScreen() {
           ))}
         </Card>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   header: { backgroundColor: colors.dark, minHeight: 56, justifyContent: "center", paddingHorizontal: 16 },
   headerTitle: { fontFamily: fontBody, fontWeight: "600", fontSize: 22, color: colors.white },
   body: { padding: 16, gap: 16 },

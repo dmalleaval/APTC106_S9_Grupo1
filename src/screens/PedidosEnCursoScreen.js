@@ -1,26 +1,23 @@
 import React from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { useOrders } from "../state/OrdersContext";
 
 const EN_REPARTO = [
   { id: "#1847", nombre: "Sushi Nikkei", dir: "Av. Providencia 2124", km: "1,2 km", min: "~14 min", precio: "$12.500", progreso: 65 },
   { id: "#1843", nombre: "Empanadas Don Pepe", dir: "Los Leones 445", km: "0,8 km", min: "~8 min", precio: "$8.900", progreso: 30 },
 ];
 
-const POR_RETIRAR = [
-  { id: "#1850", nombre: "Pizzería Napoli", dir: "Manuel Montt 1520", km: "2,5 km", min: "~18 min", precio: "$15.200" },
-  { id: "#1851", nombre: "Café Colonia", dir: "Irarrázaval 3250", km: "3,1 km", min: "~22 min", precio: "$6.800" },
-];
-
 export default function PedidosEnCursoScreen({ navigation }) {
+  const { porRetirar } = useOrders();
+
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <AppButton
@@ -33,10 +30,10 @@ export default function PedidosEnCursoScreen({ navigation }) {
           <Text style={styles.headerTitle}>Pedidos en curso</Text>
         </View>
         <View style={styles.countBadge}>
-          <Text style={styles.countBadgeText}>4 activos</Text>
+          <Text style={styles.countBadgeText}>{EN_REPARTO.length + porRetirar.length} activos</Text>
         </View>
       </View>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Section label="En reparto" color={colors.teal}>
           {EN_REPARTO.map((o) => (
             <Card key={o.id} style={{ gap: 14 }}>
@@ -76,7 +73,10 @@ export default function PedidosEnCursoScreen({ navigation }) {
         </Section>
 
         <Section label="Por retirar" color={colors.red}>
-          {POR_RETIRAR.map((o) => (
+          {porRetirar.length === 0 ? (
+            <Text style={styles.emptyText}>No tienes pedidos pendientes de retiro.</Text>
+          ) : null}
+          {porRetirar.map((o) => (
             <Card key={o.id} style={{ gap: 14 }}>
               <View style={styles.rowTop}>
                 <Text style={styles.orderId}>Pedido {o.id}</Text>
@@ -97,12 +97,16 @@ export default function PedidosEnCursoScreen({ navigation }) {
                 </View>
                 <Text style={styles.orderPrice}>{o.precio}</Text>
               </View>
-              <AppButton title="Ir al local" size="sm" onPress={() => navigation.navigate("NavegacionGps")} />
+              <AppButton
+                title="Ir al local"
+                size="sm"
+                onPress={() => navigation.navigate("NavegacionGps", { id: o.id, nombre: o.nombre })}
+              />
             </Card>
           ))}
         </Section>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -120,6 +124,7 @@ function Section({ label, color, children }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   header: {
     backgroundColor: colors.dark,
     minHeight: 56,
@@ -157,4 +162,5 @@ const styles = StyleSheet.create({
   progressLabel: { fontFamily: fontBody, fontSize: 11, color: colors.muted },
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: "#e1e5ed", overflow: "hidden" },
   progressFill: { height: "100%", backgroundColor: colors.teal },
+  emptyText: { fontFamily: fontBody, fontSize: 14, color: colors.muted },
 });

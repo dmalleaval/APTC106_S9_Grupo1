@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { View, Text, TextInput, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
 import TopAppBar from "../components/TopAppBar";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
@@ -19,10 +19,9 @@ export default function RecuperarCodigoScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar light />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <TopAppBar title="Verificar código" onBack={() => navigation.goBack()} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scroll}>
         <View style={styles.iconCircle}>
           <Icon name="shield-check" size={36} color={colors.dark} />
         </View>
@@ -53,13 +52,13 @@ export default function RecuperarCodigoScreen({ navigation }) {
           <AppButton title="Verificar" onPress={() => navigation.navigate("RecuperarNuevaContrasena")} />
         </View>
       </ScrollView>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.white },
+  scrollFlex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingVertical: 32, gap: 32 },
   iconCircle: {
     alignSelf: "center",

@@ -1,6 +1,7 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import React, { useState } from "react";
+import { View, Text, TextInput, Image, Pressable, ScrollView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
@@ -8,9 +9,18 @@ import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
 
 export default function ConfirmarEntregaScreen({ navigation }) {
+  const [photo, setPhoto] = useState(null);
+  const [note, setNote] = useState("");
+
+  const handleTakePhoto = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.6 });
+    if (!result.canceled) setPhoto(result.assets[0].uri);
+  };
+
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
         <AppButton
           title=""
@@ -21,17 +31,33 @@ export default function ConfirmarEntregaScreen({ navigation }) {
         />
         <Text style={styles.headerTitle}>Confirmar entrega</Text>
       </View>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Card outline style={styles.codeCard}>
           <Text style={styles.eyebrow}>CÓDIGO DEL CLIENTE</Text>
           <Text style={styles.code}>4 7 2 9</Text>
         </Card>
-        <View style={styles.photoBox}>
-          <Icon name="camera" size={32} color={colors.muted} />
-          <Text style={styles.photoText}>Adjuntar foto de comprobante</Text>
-        </View>
+        <Pressable style={styles.photoBox} onPress={handleTakePhoto}>
+          {photo ? (
+            <>
+              <Image source={{ uri: photo }} style={styles.photoPreview} />
+              <Text style={styles.photoText}>Toca para tomar otra foto</Text>
+            </>
+          ) : (
+            <>
+              <Icon name="camera" size={32} color={colors.muted} />
+              <Text style={styles.photoText}>Adjuntar foto de comprobante</Text>
+            </>
+          )}
+        </Pressable>
         <View style={styles.noteBox}>
-          <Text style={styles.noteText}>Nota opcional (ej: dejado en conserjería)</Text>
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="Nota opcional (ej: dejado en conserjería)"
+            placeholderTextColor={colors.muted}
+            multiline
+            style={styles.noteInput}
+          />
         </View>
       </ScrollView>
       <View style={styles.actions}>
@@ -41,13 +67,13 @@ export default function ConfirmarEntregaScreen({ navigation }) {
           onPress={() => navigation.navigate("EntregaCompletada")}
         />
       </View>
-      <GestureBar tone="bg" />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
+  scrollFlex: { flex: 1 },
   header: {
     backgroundColor: colors.dark,
     minHeight: 56,
@@ -73,7 +99,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   photoText: { fontFamily: fontBody, fontSize: 14, color: colors.muted },
+  photoPreview: { width: "100%", height: 160, borderRadius: 8 },
   noteBox: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 12 },
-  noteText: { fontFamily: fontBody, fontSize: 14, color: colors.muted },
+  noteInput: { fontFamily: fontBody, fontSize: 14, color: colors.dark, minHeight: 40, textAlignVertical: "top" },
   actions: { padding: 16, backgroundColor: colors.white },
 });

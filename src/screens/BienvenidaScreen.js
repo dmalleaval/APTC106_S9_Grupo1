@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, ImageBackground, StyleSheet } from "react-native";
-import { PhoneStatusBar, GestureBar } from "../components/PhoneChrome";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
@@ -8,14 +9,17 @@ import { fontBody } from "../theme/typography";
 
 export default function BienvenidaScreen({ navigation }) {
   return (
-    <View style={styles.screen}>
-      <PhoneStatusBar />
+    <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <ImageBackground
         source={require("../../assets/images/hero-bienvenida.png")}
         style={styles.hero}
         imageStyle={styles.heroImage}
       >
-        <View style={styles.heroOverlay} />
+        <LinearGradient
+          colors={["transparent", "rgba(0,0,0,0.75)"]}
+          locations={[0, 1]}
+          style={styles.heroOverlay}
+        />
         <View style={styles.heroContent}>
           <View style={styles.logoRow}>
             <Icon name="scooter" size={32} color={colors.red} />
@@ -30,8 +34,7 @@ export default function BienvenidaScreen({ navigation }) {
       <View style={styles.actionContainer}>
         <AppButton title="Comenzar" onPress={() => navigation.navigate("Login")} />
       </View>
-      <GestureBar tone="white" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -39,10 +42,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%", backgroundColor: colors.bg },
   hero: { flex: 1, width: "100%", height: "100%", justifyContent: "flex-end" },
   heroImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.15)",
-  },
+  heroOverlay: StyleSheet.absoluteFillObject,
   heroContent: { padding: 24, gap: 8 },
   logoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   brand: {
