@@ -14,37 +14,36 @@ Aplicación móvil para el perfil de repartidor, donde podrá recibir pedidos, n
 
 Maqueta navegable construida con **React Native + Expo** (JavaScript), usando **React Navigation** para la navegación entre pantallas.
 
-### Descarga directa del APK
-
-**https://expo.dev/accounts/isavera/projects/foodplease-repartidor/builds/c010efc6-7715-4649-918c-3c4fa36a94c8**
-
-Abre ese link desde un celular Android (o escanea el QR que muestra esa página) para instalar la app ya compilada, sin correr ningún comando. Es la forma más rápida de probar que es un aplicativo distribuible de verdad.
-
-> Generado el 24-08-2026. Los builds del plan gratuito de EAS quedan disponibles unos 30 días — vence aprox. el 23-09-2026. Si el link ya no funciona, seguir los pasos de la sección 2 para generar uno nuevo (toma ~15 minutos).
-
-Hay tres formas de probarla, de la más simple a la más completa:
-
-1. [Verla en el navegador (GitHub Pages)](#1-verla-en-el-navegador-github-pages) — sin instalar nada.
-2. [Instalar el APK en un celular Android](#2-instalar-el-apk-en-un-celular-android) — la app real, distribuible fuera de una tienda de aplicaciones.
-3. [Correrla en modo desarrollo](#3-correrla-en-modo-desarrollo) — para modificar el código.
-
----
-
-## 1. Verla en el navegador (GitHub Pages)
+### GitHub Pages
 
 **https://dmalleaval.github.io/APTC106_S9_Grupo1/**
 
-Se abre directo, sin instalar nada. Está generado a partir del build estático de la rama `main`, publicado en la rama `gh-pages`.
+Se abre directo en el navegador, sin instalar nada. Está generado a partir del build estático de la rama `main`, publicado en la rama `gh-pages`.
 
 > Sirve para una revisión rápida de las pantallas y la navegación. No reemplaza probar el APK en un celular real: en el navegador no hay acceso a la cámara ni al GPS del dispositivo.
 
-## 2. Instalar el APK en un celular Android
+Además de GitHub Pages, hay otras dos formas de probarla:
+
+1. [Instalar el APK en un celular Android](#1-instalar-el-apk-en-un-celular-android) — la app real, distribuible fuera de una tienda de aplicaciones.
+2. [Correrla en modo desarrollo](#2-correrla-en-modo-desarrollo) — para modificar el código.
+
+---
+
+## 1. Instalar el APK en un celular Android
 
 Esto es lo que demuestra que la app es **distribuible de manera directa, fuera de una tienda de aplicaciones** (no requiere Play Store).
 
+### Descarga directa
+
+**https://expo.dev/accounts/isavera/projects/foodplease-repartidor/builds/c010efc6-7715-4649-918c-3c4fa36a94c8**
+
+Abre ese link desde un celular Android (o escanea el QR que muestra esa página) para instalar la app ya compilada, sin correr ningún comando.
+
+> Generado el 24-08-2026. Los builds del plan gratuito de EAS quedan disponibles unos 30 días — vence aprox. el 23-09-2026. Si el link ya no funciona, seguir los pasos de abajo para generar uno nuevo (toma ~15 minutos).
+
 ### Generar el APK
 
-Requiere una cuenta gratuita en [expo.dev](https://expo.dev) y tener el proyecto instalado localmente (ver [sección 3](#3-correrla-en-modo-desarrollo)).
+Requiere una cuenta gratuita en [expo.dev](https://expo.dev) y tener el proyecto instalado localmente (ver [sección 2](#2-correrla-en-modo-desarrollo)).
 
 ```bash
 npx eas-cli@latest login
@@ -59,7 +58,7 @@ El build se compila en la nube de Expo (10–20 minutos aprox., no requiere Andr
 2. Al abrirlo, Android va a bloquear la instalación con un aviso de "fuente desconocida" la primera vez. Toca **Configuración** en ese mismo aviso → activa **Permitir de esta fuente** → vuelve a abrir el APK.
 3. Se instala como cualquier app y queda en el cajón de aplicaciones del celular, lista para abrir.
 
-## 3. Correrla en modo desarrollo
+## 2. Correrla en modo desarrollo
 
 ### Requisitos
 
