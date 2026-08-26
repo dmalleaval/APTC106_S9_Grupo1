@@ -1,27 +1,36 @@
 import React from "react";
-import { View, Text, ImageBackground, StyleSheet } from "react-native";
+import { View, Text, ImageBackground, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMutation, useQuery } from "@apollo/client";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
-
-function formatNow() {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
+import { AVANZAR_ESTADO_PEDIDO, PEDIDO } from "../api/queries";
 
 export default function NavegacionGpsScreen({ navigation, route }) {
-  const { nombre = "Sushi Corner", destino = "local", times = {} } = route.params || {};
+  const { pedidoId, numero, destino = "local" } = route.params || {};
   const isCliente = destino === "cliente";
-  const destinoNombre = isCliente ? nombre || "María González" : nombre;
+  const [avanzarEstado, { loading: avanzando }] = useMutation(AVANZAR_ESTADO_PEDIDO);
+  const { data, loading: cargandoPedido } = useQuery(PEDIDO, { variables: { id: pedidoId }, skip: !pedidoId });
 
-  const handleArrive = () => {
-    if (isCliente) {
-      navigation.navigate("ActualizarEstado", { startIndex: 4, times: { ...times, 3: formatNow() } });
-    } else {
-      navigation.navigate("ActualizarEstado");
+  const pedido = data?.pedido;
+  const destinoNombre = isCliente ? pedido?.cliente?.nombre : pedido?.local?.nombre;
+  const loading = avanzando || cargandoPedido;
+
+  const handleArrive = async () => {
+    try {
+      if (isCliente) {
+        // La transición a EN_CAMINO_CLIENTE ya ocurrió antes de llegar acá
+        // (ver ActualizarEstadoScreen -> botón "Ver ruta hacia el cliente").
+        navigation.navigate("ActualizarEstado", { pedidoId, numero });
+        return;
+      }
+      await avanzarEstado({ variables: { pedidoId, estado: "LLEGADA_LOCAL" } });
+      navigation.navigate("ActualizarEstado", { pedidoId, numero });
+    } catch (err) {
+      Alert.alert("No se pudo actualizar el pedido", err.message || "Intenta de nuevo.");
     }
   };
 
@@ -44,10 +53,13 @@ export default function NavegacionGpsScreen({ navigation, route }) {
             <View style={styles.originDot} />
             <View style={{ flex: 1 }}>
               <Text style={styles.metaLabel}>{isCliente ? "Hacia el cliente" : "Hacia el local"}</Text>
-              <Text style={styles.metaTitle}>{destinoNombre}</Text>
+              <Text style={styles.metaTitle}>{destinoNombre || "Cargando…"}</Text>
             </View>
             <View style={styles.distanceBadge}>
-              <Text style={styles.distanceText}>1,2 km — 6 min</Text>
+              <Text style={styles.distanceText}>
+                {pedido?.distanciaKm ? `${pedido.distanciaKm} km` : "—"}
+                {pedido?.tiempoEstimadoMin ? ` — ${pedido.tiempoEstimadoMin} min` : ""}
+              </Text>
             </View>
           </Card>
         </View>
@@ -62,10 +74,14 @@ export default function NavegacionGpsScreen({ navigation, route }) {
               <Text style={styles.maneuverTitle}>450 m</Text>
             </View>
           </Card>
-          <AppButton
-            title={isCliente ? "Ya llegué donde el cliente" : "Llegué al local"}
-            onPress={handleArrive}
-          />
+          {loading ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <AppButton
+              title={isCliente ? "Ya llegué donde el cliente" : "Llegué al local"}
+              onPress={handleArrive}
+            />
+          )}
         </View>
       </ImageBackground>
     </SafeAreaView>

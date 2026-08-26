@@ -1,49 +1,55 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, Pressable, Switch, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMutation, useQuery } from "@apollo/client";
 import AppButton from "../../components/AppButton";
 import Card from "../../components/Card";
 import Icon from "../../components/Icon";
 import { colors, radii } from "../../theme/colors";
 import { fontBody } from "../../theme/typography";
 import { useOrders } from "../../state/OrdersContext";
+import { useAuth } from "../../state/AuthContext";
+import { RESUMEN_GANANCIAS, SET_EN_LINEA } from "../../api/queries";
+
+function formatCLP(n) {
+  if (n == null) return "—";
+  return `$${Math.round(n).toLocaleString("es-CL")}`;
+}
 
 /**
- * Pantalla Home. Los estados "fuera de línea", "snackbar de activación" y
- * "cargando" del diseño original se manejan acá como estado local — tal
- * como se comportaría una pantalla Home real — en vez de ser rutas de
- * navegación separadas. Al montar la pantalla se muestra el skeleton de
- * carga por un instante, simulando una llamada real a la API.
+ * Pantalla Home. Antes simulaba "fuera de línea" / "cargando" con estado
+ * local puro; ahora "online" refleja repartidor.enLinea (persistido vía
+ * setEnLinea) y el skeleton de carga refleja el loading real de las
+ * queries, no un setTimeout artificial.
  */
 export default function PedidosDisponiblesScreen({ navigation }) {
-  const [online, setOnline] = useState(true);
+  const { repartidor } = useAuth();
+  const { available, porRetirar, enReparto, loading } = useOrders();
   const [showSnackbar, setShowSnackbar] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [setEnLinea] = useMutation(SET_EN_LINEA);
+  const { data: resumenData } = useQuery(RESUMEN_GANANCIAS, { skip: !repartidor });
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 900);
-    return () => clearTimeout(timer);
-  }, []);
+  const online = repartidor?.enLinea ?? false;
 
-  const handleToggleOnline = () => {
-    if (online) {
-      setOnline(false);
-    } else {
-      setOnline(true);
+  const handleToggleOnline = async () => {
+    const next = !online;
+    await setEnLinea({ variables: { enLinea: next } });
+    if (next) {
       setShowSnackbar(true);
       setTimeout(() => setShowSnackbar(false), 2500);
     }
   };
 
+  const resumen = resumenData?.resumenGanancias;
+
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
-
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>JV</Text>
+            <Text style={styles.avatarText}>{iniciales(repartidor?.nombre)}</Text>
           </View>
-          <Text style={styles.headerTitle}>Hola, Javier</Text>
+          <Text style={styles.headerTitle}>Hola, {primerNombre(repartidor?.nombre)}</Text>
         </View>
         <View style={styles.toggleRow}>
           <Text style={styles.toggleText}>{online ? "En línea" : "Fuera de línea"}</Text>
@@ -56,15 +62,21 @@ export default function PedidosDisponiblesScreen({ navigation }) {
         </View>
       </View>
       <View style={styles.subHeader}>
-        <Text style={styles.subHeaderText}>Zona Providencia</Text>
+        <Text style={styles.subHeaderText}>Zona {repartidor?.zona || "—"}</Text>
       </View>
 
       {loading ? (
         <SkeletonBody />
       ) : online ? (
-        <OnlineBody navigation={navigation} />
+        <OnlineBody
+          navigation={navigation}
+          available={available}
+          porRetirarCount={porRetirar.length}
+          enRepartoCount={enReparto.length}
+          resumen={resumen}
+        />
       ) : (
-        <OfflineBody onActivate={handleToggleOnline} />
+        <OfflineBody onActivate={handleToggleOnline} resumen={resumen} />
       )}
 
       {showSnackbar ? (
@@ -79,15 +91,28 @@ export default function PedidosDisponiblesScreen({ navigation }) {
   );
 }
 
-function OnlineBody({ navigation }) {
-  const { available, porRetirar } = useOrders();
+function iniciales(nombre) {
+  if (!nombre) return "—";
+  return nombre
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
 
+function primerNombre(nombre) {
+  if (!nombre) return "";
+  return nombre.split(" ")[0];
+}
+
+function OnlineBody({ navigation, available, porRetirarCount, enRepartoCount, resumen }) {
   return (
     <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
       <Card dark style={styles.earningsCard}>
         <Text style={styles.eyebrowLight}>GANANCIAS DEL DÍA</Text>
-        <Text style={styles.earningsAmount}>$18.400</Text>
-        <Text style={styles.earningsSub}>6 entregas completadas</Text>
+        <Text style={styles.earningsAmount}>{formatCLP(resumen?.totalGanado ?? 0)}</Text>
+        <Text style={styles.earningsSub}>{resumen?.entregasCompletadas ?? 0} entregas completadas</Text>
       </Card>
 
       <Card style={styles.progressCard}>
@@ -96,14 +121,14 @@ function OnlineBody({ navigation }) {
           <View style={styles.progressBox}>
             <View style={styles.progressBoxTop}>
               <View style={[styles.dot, { backgroundColor: colors.teal }]} />
-              <Text style={styles.progressNumber}>2</Text>
+              <Text style={styles.progressNumber}>{enRepartoCount}</Text>
             </View>
             <Text style={[styles.progressLabel, { color: colors.teal }]}>en reparto</Text>
           </View>
           <View style={styles.progressBox}>
             <View style={styles.progressBoxTop}>
               <View style={[styles.dot, { backgroundColor: colors.red }]} />
-              <Text style={styles.progressNumber}>{porRetirar.length}</Text>
+              <Text style={styles.progressNumber}>{porRetirarCount}</Text>
             </View>
             <Text style={[styles.progressLabel, { color: colors.red }]}>por retirar</Text>
           </View>
@@ -117,24 +142,22 @@ function OnlineBody({ navigation }) {
 
       <Text style={styles.sectionTitle}>Pedidos disponibles</Text>
 
-      {available.length === 0 ? (
-        <Text style={styles.emptyText}>No hay pedidos disponibles por ahora.</Text>
-      ) : null}
+      {available.length === 0 ? <Text style={styles.emptyText}>No hay pedidos disponibles por ahora.</Text> : null}
 
       {available.map((p) => (
-        <Card key={p.id} style={[styles.orderCard, p.km ? null : { opacity: 0.6 }]}>
+        <Card key={p.id} style={[styles.orderCard, p.distanciaKm ? null : { opacity: 0.6 }]}>
           <View style={styles.orderTop}>
-            <Text style={styles.orderId}>{p.id}</Text>
-            <Text style={styles.orderPrice}>{p.precio}</Text>
+            <Text style={styles.orderId}>{p.numero}</Text>
+            <Text style={styles.orderPrice}>{formatCLP(p.pago)}</Text>
           </View>
-          <Text style={styles.orderName}>{p.nombre}</Text>
-          {p.dir ? <Text style={styles.orderDir}>{p.dir}</Text> : null}
-          {p.km ? (
+          <Text style={styles.orderName}>{p.local.nombre}</Text>
+          {p.local.direccion ? <Text style={styles.orderDir}>{p.local.direccion}</Text> : null}
+          {p.distanciaKm ? (
             <View style={styles.orderMeta}>
               <View style={styles.kmBadge}>
-                <Text style={styles.kmBadgeText}>{p.km}</Text>
+                <Text style={styles.kmBadgeText}>{p.distanciaKm} km</Text>
               </View>
-              <Text style={styles.orderDir}>{p.min}</Text>
+              <Text style={styles.orderDir}>{p.tiempoEstimadoMin ? `~${p.tiempoEstimadoMin} min` : null}</Text>
             </View>
           ) : null}
           <AppButton
@@ -149,13 +172,13 @@ function OnlineBody({ navigation }) {
   );
 }
 
-function OfflineBody({ onActivate }) {
+function OfflineBody({ onActivate, resumen }) {
   return (
     <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
       <Card style={styles.offlineEarnings}>
         <Text style={styles.eyebrowLight}>GANANCIAS DEL DÍA (INACTIVO)</Text>
-        <Text style={styles.earningsAmount}>$18.400</Text>
-        <Text style={styles.earningsSub}>6 entregas completadas</Text>
+        <Text style={styles.earningsAmount}>{formatCLP(resumen?.totalGanado ?? 0)}</Text>
+        <Text style={styles.earningsSub}>{resumen?.entregasCompletadas ?? 0} entregas completadas</Text>
       </Card>
       <View style={styles.offlineCenter}>
         <View style={styles.offlineIconWrap}>

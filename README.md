@@ -8,11 +8,21 @@ Repositorio correspondiente a sección APTC106 Grupo 1 — Aplicativo móvil Foo
 - Gabriel Vera
 - Diego Mallea
 
-## FoodPlease · Repartidor — maqueta en React Native + Expo
+## FoodPlease · Repartidor — React Native + Expo, conectado a backend real
 
 Aplicación móvil para el perfil de repartidor, donde podrá recibir pedidos, navegar vía GPS, actualizar estados de pedidos y confirmar entregas. Adicionalmente podrá visualizar los pedidos realizados, en curso y los montos asociados.
 
-Maqueta navegable construida con **React Native + Expo** (JavaScript), usando **React Navigation** para la navegación entre pantallas.
+Construida con **React Native + Expo** (JavaScript) y **React Navigation**. Desde la Semana 11, la app dejó de usar datos hardcodeados: consume una API GraphQL propia (ver [`foodplease-backend`](../foodplease-backend)) vía **Apollo Client**, con login real (JWT) y persistencia en MongoDB.
+
+### Conectar con el backend
+
+1. Levantar el backend (`foodplease-backend/`, ver su README) — por defecto en `http://localhost:4000/graphql`.
+2. `npm install` acá.
+3. `npm run seed` en el backend para tener un usuario de prueba
+   (`pedro.ortega@ejemplo.com` / `12345678`) y pedidos de ejemplo.
+4. `npx expo start` — por defecto ya apunta a `http://localhost:4000/graphql`
+   (`src/api/client.js`). Para apuntar a producción, copiar `.env.example` a
+   `.env` con `EXPO_PUBLIC_API_URL`.
 
 ### GitHub Pages
 

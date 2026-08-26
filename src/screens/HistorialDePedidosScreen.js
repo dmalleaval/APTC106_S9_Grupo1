@@ -1,37 +1,49 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useQuery } from "@apollo/client";
 import Card from "../components/Card";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { useOrders } from "../state/OrdersContext";
+import { HISTORIAL_PEDIDOS, RESUMEN_GANANCIAS } from "../api/queries";
 
-const HOY = [
-  { id: "#1042", nombre: "Sushi Corner", horas: "9:32 — 9:58", precio: "$2.900", propina: "+ $500 propina" },
-  { id: "#1041", nombre: "Pizzería Napoli", horas: "8:45 — 9:12", precio: "$3.200", propina: "+ $300 propina" },
-  { id: "#1040", nombre: "Café Bistrô", horas: "8:10 — 8:30", precio: "$2.700", propina: null },
-  { id: "#1039", nombre: "Burger House", horas: "7:20 — 7:50", precio: "$3.100", propina: "+ $400 propina" },
-];
+function formatCLP(n) {
+  if (n == null) return "—";
+  return `$${Math.round(n).toLocaleString("es-CL")}`;
+}
 
-const AYER = [
-  {
-    id: "#1038",
-    nombre: "Empanadas Don Lucho",
-    horas: "19:30 — 20:00",
-    precio: "$4.500",
-    propina: "+ $1.000 propina",
-  },
-];
+function esHoy(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const hoy = new Date();
+  return d.toDateString() === hoy.toDateString();
+}
 
-const EN_CURSO = [
-  { id: "#1847", nombre: "Sushi Nikkei", horas: "1,2 km — ~14 min", precio: "$12.500", status: "En camino", statusColor: colors.teal },
-  { id: "#1843", nombre: "Empanadas Don Pepe", horas: "0,8 km — ~8 min", precio: "$8.900", status: "En camino", statusColor: colors.teal },
-  { id: "#1850", nombre: "Pizzería Napoli", horas: "2,5 km — ~18 min", precio: "$15.200", status: "Por retirar", statusColor: colors.red },
-  { id: "#1851", nombre: "Café Colonia", horas: "3,1 km — ~22 min", precio: "$6.800", status: "Por retirar", statusColor: colors.red },
-];
+function formatHora(iso) {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function formatFecha(iso) {
+  return new Date(iso).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "long" });
+}
 
 export default function HistorialDePedidosScreen() {
   const [tab, setTab] = useState("completados");
+  const { porRetirar, enReparto, loading: loadingEnCurso } = useOrders();
+  const { data: historialData, loading: loadingHistorial } = useQuery(HISTORIAL_PEDIDOS, {
+    variables: { dias: 14 },
+    skip: tab !== "completados",
+  });
+  const { data: resumenData } = useQuery(RESUMEN_GANANCIAS, { skip: tab !== "completados" });
+
+  const historial = historialData?.historialPedidos ?? [];
+  const hoy = historial.filter((p) => esHoy(p.horaEntregado));
+  const anteriores = historial.filter((p) => !esHoy(p.horaEntregado));
+  const resumen = resumenData?.resumenGanancias;
+  const enCurso = [...enReparto, ...porRetirar];
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
@@ -40,54 +52,65 @@ export default function HistorialDePedidosScreen() {
       </View>
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <View style={styles.chipsRow}>
-          <Pressable
-            onPress={() => setTab("en-curso")}
-            style={[styles.chip, tab === "en-curso" && styles.chipActive]}
-          >
+          <Pressable onPress={() => setTab("en-curso")} style={[styles.chip, tab === "en-curso" && styles.chipActive]}>
             <Text style={[styles.chipText, tab === "en-curso" && styles.chipTextActive]}>En curso</Text>
           </Pressable>
-          <Pressable
-            onPress={() => setTab("completados")}
-            style={[styles.chip, tab === "completados" && styles.chipActive]}
-          >
+          <Pressable onPress={() => setTab("completados")} style={[styles.chip, tab === "completados" && styles.chipActive]}>
             <Text style={[styles.chipText, tab === "completados" && styles.chipTextActive]}>Completados</Text>
           </Pressable>
         </View>
 
         {tab === "completados" ? (
-          <>
-            <Card style={styles.summaryCard}>
-              <View style={styles.summaryCol}>
-                <Text style={styles.eyebrow}>HOY</Text>
-                <Text style={styles.summaryBig}>$21.300</Text>
-              </View>
-              <View style={styles.vDivider} />
-              <View style={[styles.summaryCol, { alignItems: "center" }]}>
-                <Text style={styles.eyebrow}>ENTREGAS</Text>
-                <Text style={styles.summaryMid}>7 pedidos</Text>
-              </View>
-              <View style={styles.vDivider} />
-              <View style={[styles.summaryCol, { alignItems: "flex-end" }]}>
-                <Text style={[styles.eyebrow, { color: colors.teal }]}>PROPINAS</Text>
-                <Text style={[styles.summaryMid, { color: colors.teal }]}>+$3.200</Text>
-              </View>
-            </Card>
+          loadingHistorial && !historialData ? (
+            <ActivityIndicator color={colors.red} style={{ marginTop: 24 }} />
+          ) : (
+            <>
+              <Card style={styles.summaryCard}>
+                <View style={styles.summaryCol}>
+                  <Text style={styles.eyebrow}>HOY</Text>
+                  <Text style={styles.summaryBig}>{formatCLP(resumen?.totalGanado ?? 0)}</Text>
+                </View>
+                <View style={styles.vDivider} />
+                <View style={[styles.summaryCol, { alignItems: "center" }]}>
+                  <Text style={styles.eyebrow}>ENTREGAS</Text>
+                  <Text style={styles.summaryMid}>{resumen?.entregasCompletadas ?? 0} pedidos</Text>
+                </View>
+                <View style={styles.vDivider} />
+                <View style={[styles.summaryCol, { alignItems: "flex-end" }]}>
+                  <Text style={[styles.eyebrow, { color: colors.teal }]}>PROPINAS</Text>
+                  <Text style={[styles.summaryMid, { color: colors.teal }]}>+{formatCLP(resumen?.totalPropinas ?? 0)}</Text>
+                </View>
+              </Card>
 
-            <Text style={styles.dateLabel}>Hoy — Viernes 22 agosto</Text>
-            {HOY.map((o) => (
-              <OrderRow key={o.id} order={o} />
-            ))}
+              {hoy.length > 0 ? (
+                <>
+                  <Text style={styles.dateLabel}>Hoy</Text>
+                  {hoy.map((o) => (
+                    <OrderRow key={o.id} order={o} />
+                  ))}
+                </>
+              ) : null}
 
-            <Text style={styles.dateLabel}>Ayer — Jueves 21 agosto</Text>
-            {AYER.map((o) => (
-              <OrderRow key={o.id} order={o} faded />
-            ))}
-          </>
+              {anteriores.length > 0 ? (
+                <>
+                  <Text style={styles.dateLabel}>Anteriores</Text>
+                  {anteriores.map((o) => (
+                    <OrderRow key={o.id} order={o} faded />
+                  ))}
+                </>
+              ) : null}
+
+              {historial.length === 0 ? <Text style={styles.emptyText}>Aún no tienes entregas completadas.</Text> : null}
+            </>
+          )
+        ) : loadingEnCurso ? (
+          <ActivityIndicator color={colors.red} style={{ marginTop: 24 }} />
         ) : (
           <>
             <Text style={styles.dateLabel}>Ahora</Text>
-            {EN_CURSO.map((o) => (
-              <OrderRow key={o.id} order={o} />
+            {enCurso.length === 0 ? <Text style={styles.emptyText}>No tienes pedidos en curso.</Text> : null}
+            {enCurso.map((o) => (
+              <OrderRow key={o.id} order={o} enCurso />
             ))}
           </>
         )}
@@ -96,34 +119,29 @@ export default function HistorialDePedidosScreen() {
   );
 }
 
-function OrderRow({ order, faded }) {
+function OrderRow({ order, faded, enCurso }) {
   return (
     <Card style={[styles.orderRow, faded && { opacity: 0.65 }]}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.orderId}>{order.id}</Text>
-        <Text style={styles.orderName}>{order.nombre}</Text>
-        <Text style={styles.orderHoras}>{order.horas}</Text>
+        <Text style={styles.orderId}>{order.numero}</Text>
+        <Text style={styles.orderName}>{order.local?.nombre}</Text>
+        <Text style={styles.orderHoras}>
+          {enCurso ? order.cliente?.direccion : order.horaEntregado ? formatFecha(order.horaEntregado) + " · " + formatHora(order.horaEntregado) : ""}
+        </Text>
       </View>
       <View style={styles.orderRight}>
         <View style={{ alignItems: "flex-end" }}>
-          <Text style={styles.orderPrecio}>{order.precio}</Text>
-          {order.status ? (
-            <Text style={[styles.orderStatusText, { color: order.statusColor }]}>{order.status}</Text>
+          <Text style={styles.orderPrecio}>{formatCLP(order.pago)}</Text>
+          {enCurso ? (
+            <Text style={[styles.orderStatusText, { color: order.estado === "ACEPTADO" || order.estado === "LLEGADA_LOCAL" ? colors.red : colors.teal }]}>
+              {order.estado.replaceAll("_", " ").toLowerCase()}
+            </Text>
           ) : order.propina ? (
-            <Text style={styles.orderPropina}>{order.propina}</Text>
+            <Text style={styles.orderPropina}>+ {formatCLP(order.propina)} propina</Text>
           ) : null}
         </View>
-        <View
-          style={[
-            styles.checkDot,
-            order.status && { backgroundColor: order.status === "Por retirar" ? colors.redSoft : colors.tealSoft },
-          ]}
-        >
-          <Icon
-            name={order.status ? "clock" : "check"}
-            size={12}
-            color={order.status ? order.statusColor : colors.teal}
-          />
+        <View style={[styles.checkDot, enCurso && { backgroundColor: colors.redSoft }]}>
+          <Icon name={enCurso ? "clock" : "check"} size={12} color={enCurso ? colors.red : colors.teal} />
         </View>
       </View>
     </Card>
@@ -155,6 +173,7 @@ const styles = StyleSheet.create({
   summaryBig: { fontFamily: fontBody, fontWeight: "700", fontSize: 24, color: colors.dark },
   summaryMid: { fontFamily: fontBody, fontWeight: "600", fontSize: 18, color: colors.dark },
   dateLabel: { fontFamily: fontBody, fontWeight: "500", fontSize: 12, color: colors.muted, marginTop: 4 },
+  emptyText: { fontFamily: fontBody, fontSize: 14, color: colors.muted },
   orderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   orderId: { fontFamily: fontBody, fontWeight: "500", fontSize: 12, color: colors.muted },
   orderName: { fontFamily: fontBody, fontWeight: "600", fontSize: 16, color: colors.dark },

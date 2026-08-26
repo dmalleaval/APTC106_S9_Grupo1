@@ -8,13 +8,39 @@ import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
 import { useOrders } from "../state/OrdersContext";
 
-const EN_REPARTO = [
-  { id: "#1847", nombre: "Sushi Nikkei", dir: "Av. Providencia 2124", km: "1,2 km", min: "~14 min", precio: "$12.500", progreso: 65 },
-  { id: "#1843", nombre: "Empanadas Don Pepe", dir: "Los Leones 445", km: "0,8 km", min: "~8 min", precio: "$8.900", progreso: 30 },
-];
+function formatCLP(n) {
+  if (n == null) return "—";
+  return `$${Math.round(n).toLocaleString("es-CL")}`;
+}
+
+// Progreso visual de la barra (coincide con los 5 pasos de
+// ActualizarEstadoScreen.js: aceptado=0% ... entregado=100%)
+const PROGRESO_POR_ESTADO = { RETIRADO: 55, EN_CAMINO_CLIENTE: 80 };
 
 export default function PedidosEnCursoScreen({ navigation }) {
-  const { porRetirar } = useOrders();
+  const { porRetirar, enReparto } = useOrders();
+
+  const irAlLocal = (o) =>
+    navigation.navigate("NavegacionGps", {
+      pedidoId: o.id,
+      numero: o.numero,
+      nombre: o.local.nombre,
+      destino: "local",
+    });
+
+  const continuarEnReparto = (o) => {
+    if (o.estado === "RETIRADO") {
+      // Aún falta marcar "En camino al cliente" — se hace desde
+      // ActualizarEstadoScreen (botón "Ver ruta hacia el cliente").
+      navigation.navigate("ActualizarEstado", { pedidoId: o.id, numero: o.numero, estado: o.estado });
+    } else {
+      navigation.navigate("ConfirmarEntrega", {
+        pedidoId: o.id,
+        numero: o.numero,
+        codigoConfirmacion: o.codigoConfirmacion,
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
@@ -30,77 +56,92 @@ export default function PedidosEnCursoScreen({ navigation }) {
           <Text style={styles.headerTitle}>Pedidos en curso</Text>
         </View>
         <View style={styles.countBadge}>
-          <Text style={styles.countBadgeText}>{EN_REPARTO.length + porRetirar.length} activos</Text>
+          <Text style={styles.countBadgeText}>{enReparto.length + porRetirar.length} activos</Text>
         </View>
       </View>
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Section label="En reparto" color={colors.teal}>
-          {EN_REPARTO.map((o) => (
+          {enReparto.length === 0 ? <Text style={styles.emptyText}>No tienes pedidos en reparto.</Text> : null}
+          {enReparto.map((o) => (
             <Card key={o.id} style={{ gap: 14 }}>
               <View style={styles.rowTop}>
-                <Text style={styles.orderId}>Pedido {o.id}</Text>
+                <Text style={styles.orderId}>Pedido {o.numero}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: colors.tealSoft }]}>
-                  <Text style={[styles.statusText, { color: colors.teal }]}>En camino</Text>
+                  <Text style={[styles.statusText, { color: colors.teal }]}>
+                    {o.estado === "RETIRADO" ? "Retirado" : "En camino"}
+                  </Text>
                 </View>
               </View>
               <View>
-                <Text style={styles.orderName}>{o.nombre}</Text>
-                <Text style={styles.orderDir}>{o.dir}</Text>
+                <Text style={styles.orderName}>{o.cliente.nombre}</Text>
+                <Text style={styles.orderDir}>{o.cliente.direccion}</Text>
               </View>
               <View style={styles.rowTop}>
                 <View style={styles.metaRow}>
-                  <View style={styles.kmBadge}>
-                    <Text style={styles.kmBadgeText}>{o.km}</Text>
-                  </View>
-                  <Text style={styles.orderDir}>{o.min}</Text>
+                  {o.distanciaKm ? (
+                    <View style={styles.kmBadge}>
+                      <Text style={styles.kmBadgeText}>{o.distanciaKm} km</Text>
+                    </View>
+                  ) : null}
+                  <Text style={styles.orderDir}>{o.tiempoEstimadoMin ? `~${o.tiempoEstimadoMin} min` : null}</Text>
                 </View>
-                <Text style={styles.orderPrice}>{o.precio}</Text>
+                <Text style={styles.orderPrice}>{formatCLP(o.pago)}</Text>
               </View>
               <View>
                 <View style={styles.progressLabelRow}>
                   <Text style={styles.progressLabel}>Progreso de entrega</Text>
                   <Text style={[styles.progressLabel, { color: colors.teal, fontWeight: "600" }]}>
-                    {o.progreso}%
+                    {PROGRESO_POR_ESTADO[o.estado] ?? 40}%
                   </Text>
                 </View>
                 <View style={styles.progressTrack}>
-                  <View style={[styles.progressFill, { width: `${o.progreso}%` }]} />
+                  <View style={[styles.progressFill, { width: `${PROGRESO_POR_ESTADO[o.estado] ?? 40}%` }]} />
                 </View>
               </View>
-              <AppButton title="Entregar" size="sm" onPress={() => navigation.navigate("ConfirmarEntrega")} />
+              <AppButton
+                title={o.estado === "RETIRADO" ? "Ver ruta hacia el cliente" : "Entregar"}
+                size="sm"
+                onPress={() => continuarEnReparto(o)}
+              />
             </Card>
           ))}
         </Section>
 
         <Section label="Por retirar" color={colors.red}>
-          {porRetirar.length === 0 ? (
-            <Text style={styles.emptyText}>No tienes pedidos pendientes de retiro.</Text>
-          ) : null}
+          {porRetirar.length === 0 ? <Text style={styles.emptyText}>No tienes pedidos pendientes de retiro.</Text> : null}
           {porRetirar.map((o) => (
             <Card key={o.id} style={{ gap: 14 }}>
               <View style={styles.rowTop}>
-                <Text style={styles.orderId}>Pedido {o.id}</Text>
+                <Text style={styles.orderId}>Pedido {o.numero}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: colors.redSoft }]}>
-                  <Text style={[styles.statusText, { color: colors.red }]}>Aceptado</Text>
+                  <Text style={[styles.statusText, { color: colors.red }]}>
+                    {o.estado === "LLEGADA_LOCAL" ? "En el local" : "Aceptado"}
+                  </Text>
                 </View>
               </View>
               <View>
-                <Text style={styles.orderName}>{o.nombre}</Text>
-                <Text style={styles.orderDir}>{o.dir}</Text>
+                <Text style={styles.orderName}>{o.local.nombre}</Text>
+                <Text style={styles.orderDir}>{o.local.direccion}</Text>
               </View>
               <View style={styles.rowTop}>
                 <View style={styles.metaRow}>
-                  <View style={styles.kmBadge}>
-                    <Text style={styles.kmBadgeText}>{o.km}</Text>
-                  </View>
-                  <Text style={styles.orderDir}>{o.min}</Text>
+                  {o.distanciaKm ? (
+                    <View style={styles.kmBadge}>
+                      <Text style={styles.kmBadgeText}>{o.distanciaKm} km</Text>
+                    </View>
+                  ) : null}
+                  <Text style={styles.orderDir}>{o.tiempoEstimadoMin ? `~${o.tiempoEstimadoMin} min` : null}</Text>
                 </View>
-                <Text style={styles.orderPrice}>{o.precio}</Text>
+                <Text style={styles.orderPrice}>{formatCLP(o.pago)}</Text>
               </View>
               <AppButton
-                title="Ir al local"
+                title={o.estado === "LLEGADA_LOCAL" ? "Marcar pedido retirado" : "Ir al local"}
                 size="sm"
-                onPress={() => navigation.navigate("NavegacionGps", { id: o.id, nombre: o.nombre })}
+                onPress={() =>
+                  o.estado === "LLEGADA_LOCAL"
+                    ? navigation.navigate("ActualizarEstado", { pedidoId: o.id, numero: o.numero, estado: o.estado })
+                    : irAlLocal(o)
+                }
               />
             </Card>
           ))}

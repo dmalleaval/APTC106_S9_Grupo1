@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
@@ -8,20 +8,43 @@ import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
 import { useOrders } from "../state/OrdersContext";
 
+function formatCLP(n) {
+  if (n == null) return "—";
+  return `$${Math.round(n).toLocaleString("es-CL")}`;
+}
+
 export default function DetalleDelPedidoScreen({ navigation, route }) {
   const { acceptOrder } = useOrders();
-  const {
-    id = "#1042",
-    nombre = "Sushi Corner",
-    dir = "Av. Providencia 2140",
-    precio = "$2.900",
-    km = "3,1 km",
-    min,
-  } = route.params || {};
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleAccept = () => {
-    acceptOrder({ id, nombre, dir, precio, km, min });
-    navigation.navigate("Main");
+  // route.params llega tal cual lo devuelve la query pedidosDisponibles
+  // (ver src/api/queries.js -> fragment PedidoFields), navegado desde
+  // PedidosDisponiblesScreen con navigation.navigate("DetalleDelPedido", p).
+  const pedido = route.params;
+
+  if (!pedido) {
+    return (
+      <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+        <View style={styles.body}>
+          <Text style={styles.rowSubtitle}>No se encontró información del pedido.</Text>
+          <AppButton title="Volver" onPress={() => navigation.navigate("Main")} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const { id, numero, local, cliente, pago, distanciaKm } = pedido;
+
+  const handleAccept = async () => {
+    setSubmitting(true);
+    try {
+      await acceptOrder(id);
+      navigation.navigate("Main");
+    } catch (err) {
+      Alert.alert("No se pudo aceptar el pedido", err.message || "Intenta de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -34,7 +57,7 @@ export default function DetalleDelPedidoScreen({ navigation, route }) {
           style={styles.backBtn}
           icon={<Icon name="arrow-left" size={22} color={colors.white} />}
         />
-        <Text style={styles.headerTitle}>Pedido {id}</Text>
+        <Text style={styles.headerTitle}>Pedido {numero}</Text>
       </View>
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Card outline style={styles.row}>
@@ -43,8 +66,8 @@ export default function DetalleDelPedidoScreen({ navigation, route }) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: colors.red }]}>RETIRO EN LOCAL</Text>
-            <Text style={styles.rowTitle}>{nombre}</Text>
-            <Text style={styles.rowSubtitle}>{dir || "Dirección por confirmar"}</Text>
+            <Text style={styles.rowTitle}>{local.nombre}</Text>
+            <Text style={styles.rowSubtitle}>{local.direccion || "Dirección por confirmar"}</Text>
           </View>
         </Card>
         <Card outline style={styles.row}>
@@ -53,18 +76,18 @@ export default function DetalleDelPedidoScreen({ navigation, route }) {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.eyebrow, { color: colors.teal }]}>ENTREGA AL CLIENTE</Text>
-            <Text style={styles.rowTitle}>María González</Text>
-            <Text style={styles.rowSubtitle}>Los Leones 1455, Depto 802</Text>
+            <Text style={styles.rowTitle}>{cliente.nombre}</Text>
+            <Text style={styles.rowSubtitle}>{cliente.direccion}</Text>
           </View>
         </Card>
         <Card dark style={styles.summaryRow}>
           <View>
             <Text style={styles.eyebrowLight}>DISTANCIA TOTAL</Text>
-            <Text style={styles.summaryValue}>{km || "—"}</Text>
+            <Text style={styles.summaryValue}>{distanciaKm ? `${distanciaKm} km` : "—"}</Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={styles.eyebrowLight}>PAGO DEL REPARTO</Text>
-            <Text style={styles.summaryValue}>{precio}</Text>
+            <Text style={styles.summaryValue}>{formatCLP(pago)}</Text>
           </View>
         </Card>
       </ScrollView>
@@ -74,8 +97,13 @@ export default function DetalleDelPedidoScreen({ navigation, route }) {
           variant="outline"
           style={{ flex: 1 }}
           onPress={() => navigation.navigate("Main")}
+          disabled={submitting}
         />
-        <AppButton title="Aceptar pedido" style={{ flex: 1 }} onPress={handleAccept} />
+        {submitting ? (
+          <ActivityIndicator color={colors.red} style={{ flex: 1 }} />
+        ) : (
+          <AppButton title="Aceptar pedido" style={{ flex: 1 }} onPress={handleAccept} />
+        )}
       </View>
     </SafeAreaView>
   );

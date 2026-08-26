@@ -2,18 +2,31 @@ import React from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Card from "../components/Card";
+import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { useAuth } from "../state/AuthContext";
 
-const ROWS = [
-  { label: "Ganancias de la semana", value: "$96.500" },
-  { label: "Vehículo", value: "Moto · GTR-42" },
-  { label: "Documentos", badge: "Al día" },
-  { label: "Notificaciones", badge: "Activas" },
-];
+function iniciales(nombre) {
+  if (!nombre) return "—";
+  return nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
 
-export default function PerfilScreen() {
+export default function PerfilScreen({ navigation }) {
+  const { repartidor, logout } = useAuth();
+
+  const rows = [
+    { label: "Vehículo", value: `${repartidor?.vehiculo?.tipo || "—"} · ${repartidor?.vehiculo?.patente || "—"}` },
+    { label: "Documentos", badge: repartidor?.documentosAlDia ? "Al día" : "Pendiente" },
+    { label: "Notificaciones", badge: repartidor?.notificacionesActivas ? "Activas" : "Inactivas" },
+  ];
+
+  const handleLogout = async () => {
+    await logout();
+    navigation.reset({ index: 0, routes: [{ name: "Bienvenida" }] });
+  };
+
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.header}>
@@ -22,24 +35,21 @@ export default function PerfilScreen() {
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>JV</Text>
+            <Text style={styles.avatarText}>{iniciales(repartidor?.nombre)}</Text>
           </View>
           <View>
-            <Text style={styles.name}>Javier Vargas</Text>
+            <Text style={styles.name}>{repartidor?.nombre || "—"}</Text>
             <View style={styles.ratingRow}>
               <Icon name="star" size={14} color={colors.red} />
-              <Text style={styles.ratingText}>4,9</Text>
-              <Text style={styles.deliveries}>312 entregas</Text>
+              <Text style={styles.ratingText}>{repartidor?.calificacion?.toFixed(1) ?? "—"}</Text>
+              <Text style={styles.deliveries}>{repartidor?.entregasCompletadas ?? 0} entregas</Text>
             </View>
           </View>
         </Card>
 
         <Card style={{ padding: 0 }}>
-          {ROWS.map((row, i) => (
-            <View
-              key={row.label}
-              style={[styles.row, i < ROWS.length - 1 && styles.rowBorder]}
-            >
+          {rows.map((row, i) => (
+            <View key={row.label} style={[styles.row, i < rows.length - 1 && styles.rowBorder]}>
               <Text style={styles.rowLabel}>{row.label}</Text>
               {row.badge ? (
                 <View style={styles.badge}>
@@ -51,6 +61,8 @@ export default function PerfilScreen() {
             </View>
           ))}
         </Card>
+
+        <AppButton title="Cerrar sesión" variant="outline" onPress={handleLogout} />
       </ScrollView>
     </SafeAreaView>
   );

@@ -5,8 +5,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { enableScreens } from "react-native-screens";
+import { ApolloProvider } from "@apollo/client";
 import RootNavigator from "./src/navigation/RootNavigator";
 import linking from "./src/navigation/linking";
+import { apolloClient } from "./src/api/client";
+import { AuthProvider } from "./src/state/AuthContext";
 import { OrdersProvider } from "./src/state/OrdersContext";
 
 // react-native-screens todavía no posiciona bien sus pantallas nativas en la
@@ -24,11 +27,15 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1, width: "100%", height: "100%" }}>
       <SafeAreaProvider>
         <StatusBar style="auto" />
-        <OrdersProvider>
-          <NavigationContainer linking={linking}>
-            <RootNavigator />
-          </NavigationContainer>
-        </OrdersProvider>
+        <ApolloProvider client={apolloClient}>
+          <AuthProvider>
+            <OrdersProvider>
+              <NavigationContainer linking={linking}>
+                <RootNavigator />
+              </NavigationContainer>
+            </OrdersProvider>
+          </AuthProvider>
+        </ApolloProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

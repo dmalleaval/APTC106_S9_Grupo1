@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, StyleSheet } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useMutation, useQuery } from "@apollo/client";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { AVANZAR_ESTADO_PEDIDO, PEDIDO } from "../api/queries";
 
 const STEP_TITLES = [
   "Pedido aceptado",
@@ -14,39 +16,74 @@ const STEP_TITLES = [
   "Entregado",
 ];
 
-function formatNow() {
-  const now = new Date();
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-}
+// Último paso ya completado según el estado real que devuelve el backend
+// (ver enum EstadoPedido en el backend). currentIndex = ese índice + 1.
+const ULTIMO_COMPLETADO = {
+  ACEPTADO: 0,
+  LLEGADA_LOCAL: 1,
+  RETIRADO: 2,
+  EN_CAMINO_CLIENTE: 3,
+  ENTREGADO: 4,
+};
 
 const CAMINO_AL_CLIENTE_INDEX = STEP_TITLES.indexOf("En camino al cliente");
 
-export default function ActualizarEstadoScreen({ navigation, route }) {
-  const { startIndex = 2, times: initialTimes = { 0: "9:32", 1: "9:40" } } = route.params || {};
-  const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [times, setTimes] = useState(initialTimes);
+function formatHora(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
 
+export default function ActualizarEstadoScreen({ navigation, route }) {
+  const { pedidoId, numero } = route.params || {};
+  const { data, loading: cargando, refetch } = useQuery(PEDIDO, { variables: { id: pedidoId }, skip: !pedidoId });
+  const [avanzarEstado, { loading: avanzando }] = useMutation(AVANZAR_ESTADO_PEDIDO);
+  const [error, setError] = useState(null);
+
+  const pedido = data?.pedido;
+  const currentIndex = pedido ? Math.min(ULTIMO_COMPLETADO[pedido.estado] + 1, STEP_TITLES.length - 1) : 0;
   const isLast = currentIndex === STEP_TITLES.length - 1;
   const goesToMap = currentIndex === CAMINO_AL_CLIENTE_INDEX;
+
+  const horas = pedido
+    ? [pedido.horaAceptado, pedido.horaLlegadaLocal, pedido.horaRetirado, pedido.horaEnCaminoCliente, pedido.horaEntregado]
+    : [];
 
   const STEPS = STEP_TITLES.map((title, i) => ({
     title,
     state: i < currentIndex ? "done" : i === currentIndex ? "current" : "pending",
-    meta: times[i] ?? (i === currentIndex ? "Por confirmar" : null),
+    meta: formatHora(horas[i]) ?? (i === currentIndex ? "Por confirmar" : null),
   }));
 
-  const handleAdvance = () => {
-    if (goesToMap) {
-      navigation.navigate("NavegacionGps", { destino: "cliente", times });
-      return;
-    }
-    setTimes((t) => ({ ...t, [currentIndex]: formatNow() }));
-    if (isLast) {
-      navigation.navigate("ConfirmarEntrega");
-    } else {
-      setCurrentIndex((i) => i + 1);
+  const handleAdvance = async () => {
+    setError(null);
+    try {
+      if (goesToMap) {
+        await avanzarEstado({ variables: { pedidoId, estado: "EN_CAMINO_CLIENTE" } });
+        navigation.navigate("NavegacionGps", { pedidoId, numero, destino: "cliente" });
+        return;
+      }
+      if (isLast) {
+        navigation.navigate("ConfirmarEntrega", { pedidoId, numero, codigoConfirmacion: pedido?.codigoConfirmacion });
+        return;
+      }
+      const siguienteEstado = Object.keys(ULTIMO_COMPLETADO).find(
+        (k) => ULTIMO_COMPLETADO[k] === currentIndex
+      );
+      await avanzarEstado({ variables: { pedidoId, estado: siguienteEstado } });
+      await refetch();
+    } catch (err) {
+      setError(err.message || "No se pudo actualizar el estado del pedido.");
     }
   };
+
+  if (cargando && !pedido) {
+    return (
+      <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.red} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
@@ -58,7 +95,7 @@ export default function ActualizarEstadoScreen({ navigation, route }) {
           style={styles.backBtn}
           icon={<Icon name="arrow-left" size={22} color={colors.white} />}
         />
-        <Text style={styles.headerTitle}>Estado del pedido</Text>
+        <Text style={styles.headerTitle}>Estado del pedido {numero ? `· ${numero}` : ""}</Text>
       </View>
       <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.body}>
         {STEPS.map((step, i) => (
@@ -97,12 +134,17 @@ export default function ActualizarEstadoScreen({ navigation, route }) {
             </View>
           </View>
         ))}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </ScrollView>
       <View style={styles.actions}>
-        <AppButton
-          title={isLast ? "Entregar" : goesToMap ? "Ver ruta hacia el cliente" : `Marcar "${STEP_TITLES[currentIndex]}"`}
-          onPress={handleAdvance}
-        />
+        {avanzando ? (
+          <ActivityIndicator color={colors.red} />
+        ) : (
+          <AppButton
+            title={isLast ? "Entregar" : goesToMap ? "Ver ruta hacia el cliente" : `Marcar "${STEP_TITLES[currentIndex]}"`}
+            onPress={handleAdvance}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -148,5 +190,6 @@ const styles = StyleSheet.create({
   stepText: { paddingBottom: 32, flex: 1 },
   stepTitle: { fontFamily: fontBody, fontWeight: "500", fontSize: 16, color: colors.dark },
   stepMeta: { fontFamily: fontBody, fontSize: 12, color: colors.muted, marginTop: 2 },
+  errorText: { fontFamily: fontBody, fontSize: 13, color: colors.red, marginTop: 4 },
   actions: { padding: 16, backgroundColor: colors.white },
 });

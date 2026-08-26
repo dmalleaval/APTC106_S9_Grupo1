@@ -1,13 +1,32 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useQuery } from "@apollo/client";
 import Card from "../components/Card";
 import AppButton from "../components/AppButton";
 import Icon from "../components/Icon";
 import { colors } from "../theme/colors";
 import { fontBody } from "../theme/typography";
+import { RESUMEN_GANANCIAS } from "../api/queries";
 
-export default function EntregaCompletadaScreen({ navigation }) {
+function formatCLP(n) {
+  if (n == null) return "—";
+  return `$${Math.round(n).toLocaleString("es-CL")}`;
+}
+
+function formatHora(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+export default function EntregaCompletadaScreen({ navigation, route }) {
+  const { numero, pago, propina, horaEntregado } = route.params || {};
+  const { data } = useQuery(RESUMEN_GANANCIAS);
+  const totalDelDia = data?.resumenGanancias?.totalGanado;
+
+  const gananciaPedido = (pago || 0) + (propina || 0);
+
   return (
     <SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
       <View style={styles.content}>
@@ -16,17 +35,19 @@ export default function EntregaCompletadaScreen({ navigation }) {
         </View>
         <View style={styles.textGroup}>
           <Text style={styles.title}>¡Entrega completada!</Text>
-          <Text style={styles.subtitle}>Pedido #1042 · 9:58</Text>
+          <Text style={styles.subtitle}>
+            Pedido {numero || ""} {horaEntregado ? `· ${formatHora(horaEntregado)}` : ""}
+          </Text>
         </View>
         <Card style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Ganancia del pedido</Text>
-            <Text style={styles.summaryPositive}>+ $2.900</Text>
+            <Text style={styles.summaryPositive}>+ {formatCLP(gananciaPedido)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
             <Text style={styles.summaryTotalLabel}>Total del día</Text>
-            <Text style={styles.summaryTotalValue}>$21.300</Text>
+            <Text style={styles.summaryTotalValue}>{formatCLP(totalDelDia)}</Text>
           </View>
         </Card>
       </View>
